@@ -6,5 +6,20 @@ import AST
 class Printable a where
   pretty :: a -> String
 
-instance Printable AST where
+instance Printable Identifier where
   pretty (Identifier s) = " " ++ s ++ " "
+
+instance Printable Integer where
+  pretty = show
+
+instance Printable Double where
+  pretty = show
+
+instance Printable Char where
+  pretty c = "'" ++ show c ++ "'"
+
+instance Printable Constant where
+  pretty (Integer i) = pretty i
+  pretty (Float f) = pretty f
+  pretty (Char c) = pretty c
+  pretty (Enumeration i) = pretty i
