@@ -53,7 +53,7 @@ data EqualityExpression = RelationalExpression RelationalExpression
                         | DisEqual EqualityExpression RelationalExpression
 
 data RelationalExpression = ShiftExpression ShiftExpression
-                          | CompareOperator RelationalExpression ShiftExpression
+                          | Comparison RelationalExpression CompareOperator ShiftExpression
 
 data CompareOperator = LT | GT | LTE | GTE
 
@@ -99,4 +99,4 @@ data PrimaryExpression = IdentifierExpression Identifier
                        | StringLiteralExpression StringLiteral
                        | Expr Expression
 
-type InitializerList = () -- See section 6.7.8 for details
+data InitializerList = Null -- See section 6.7.8 for details
