@@ -99,4 +99,19 @@ data PrimaryExpression = IdentifierExpression Identifier
                        | StringLiteralExpression StringLiteral
                        | Expr Expression
 
-data InitializerList = Null -- See section 6.7.8 for details
+-- 6.6 Constant Expressions
+-- A constant expression had different semantic constraints, so it should be
+-- represented as a different type
+data ConstantExpression = ConstantExpression ConditionalExpression
+
+-- 6.7.8
+data Initializer = Assignment AssignmentExpression
+                 | IList InitializerList
+
+-- The Initializer list specified in the C standard is left recursive.
+newtype InitializerList = InitializerList [((Maybe Designation),Initializer)]
+
+newtype Designation = DesignationList [Designator]
+
+data Designator = SubscriptDesignator ConstantExpression
+                | MemberDesignator Identifier
