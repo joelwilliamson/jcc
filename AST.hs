@@ -50,14 +50,14 @@ data BitwiseOrExpression = BitwiseXorExpression BitwiseXorExpression
                          | BitwiseOr BitwiseOrExpression BitwiseXorExpression
 
 data BitwiseXorExpression = BitwiseAndExpression BitwiseAndExpression
-                          | Xor BitwiseXorExpression BitwiseAndExpression
+                          | BitwiseXor BitwiseXorExpression BitwiseAndExpression
 
 data BitwiseAndExpression = EqualityExpression EqualityExpression
                           | BitwiseAnd BitwiseAndExpression EqualityExpression
 
 data EqualityExpression = RelationalExpression RelationalExpression
                         | Equal EqualityExpression RelationalExpression
-                        | DisEqual EqualityExpression RelationalExpression
+                        | UnEqual EqualityExpression RelationalExpression
 
 data RelationalExpression = ShiftExpression ShiftExpression
                           | Comparison RelationalExpression CompareOperator ShiftExpression
