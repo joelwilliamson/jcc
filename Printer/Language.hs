@@ -16,7 +16,7 @@ instance Printable Double where
   pretty = show
 
 instance Printable Char where
-  pretty c = "'" ++ show c ++ "'"
+  pretty = show
 
 instance Printable Constant where
   pretty (Integer i) = pretty i
