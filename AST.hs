@@ -1,17 +1,24 @@
 module AST where
 
+-- The syntax is taken from C99 (ISO/IEC 9899:1999), section 6
+
+-- 6.4.2
 data Identifier = Identifier String
          deriving (Eq,Show)
 
+-- 6.4.4
 data Constant = Integer Integer
               | Float Double
               | Char Char
               | Enumeration Identifier
               deriving (Eq,Show)
 
+--6.4.5
 data StringLiteral = StringLiteral String
                      deriving (Eq,Show)
 
+
+-- Expressions: 6.5
 data Expression = AssignmentExpression AssignmentExpression
                 | Comma Expression AssignmentExpression
 
