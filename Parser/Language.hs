@@ -180,17 +180,17 @@ prefixExpression =
 
 compoundLiteral = liftM2 CompoundLiteral (parens identifier) (braces initializerList)
 
-postfixExpression = rest (liftM PrimaryExpression primaryExpression
-                     <|> compoundLiteral)
-  where rest postEx = (rest $ liftM2 ArraySubscript postEx $ brackets expression)
-                      <|> (rest $ liftM2 FunctionCall postEx
-                           $ parens argumentExpressionList)
-                      <|> (rest $ liftM2 Member postEx $ dot >> identifier)
-                      <|> (rest $ liftM2 PointerToMember postEx
-                           $ reservedOp "->" >> identifier)
-                      <|> (rest $ liftM PostIncrement $ postEx <* reservedOp "++")
-                      <|> (rest $ liftM PostDecrement $ postEx <* reservedOp "--")
-                      <|> postEx
+postfixExpression :: ParsecT String u Identity PostfixExpression
+postfixExpression = (liftM PrimaryExpression primaryExpression
+                     <|> compoundLiteral) >>= rest
+  where rest :: PostfixExpression -> ParsecT String u Identity PostfixExpression
+        rest postEx = (brackets expression >>= rest . ArraySubscript postEx)
+                      <|> (parens argumentExpressionList >>= rest . FunctionCall postEx)
+                      <|> (dot >> identifier >>= rest . Member postEx)
+                      <|> (reservedOp "->" >> identifier >>= rest . PointerToMember postEx)
+                      <|> (reservedOp "++" >> rest (PostIncrement postEx))
+                      <|> (reservedOp "--" >> rest (PostDecrement postEx))
+                      <|> return postEx
 
 argumentExpressionList = try (do
                                  cdr <- argumentExpressionList
