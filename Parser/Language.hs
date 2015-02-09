@@ -214,10 +214,75 @@ initializerList = liftM InitializerList
                   $ (flip sepBy) comma
                   $ liftM2 (,) (optionMaybe designation) initializer
 
+declaration = liftM2 (many declarationSpecifier) (many initDeclarator)
+
+declarationSpecifier = liftM StorageClass storageClass
+                       <|> liftM TypeSpecifier typeSpecifier
+                       <|> liftM TypeQualifier typeQualifier
+                       <|> liftM FunctionSpecifier functionSpecifier
+
+storageClass = foldl1 (<|>) $ map (\(name,cons) -> reservedName name >> return cons)
+               [("typedef", Typedef)
+               ,("extern", Extern)
+               ,("static", Static)
+               ,("auto", Auto)
+               ,("register",Register)]
+
+typeSpecifier = (foldl1 (<|>) $
+                map (\(name,cons) -> reservedName name >> return cons)
+                [("void",VoidT)
+                ,("char",CharT)
+                ,("short",ShortT)
+                ,("int",IntT)
+                ,("long",LongT)
+                ,("float",FloatT)
+                ,("double",DoubleT)
+                ,("signed",Signed)
+                ,("unsigned",Unsigned)
+                ,("_Bool",Bool)
+                ,("_Complex",Complex)
+                ,("_Imaginary",Imaginary)])
+                <|> structUnionSpecifier
+                <|> enumSpecifier
+                <|> typedefName
+
+structUnionSpecifier = (try $ liftM3 StructLocalDefinition
+                        structUnion (optionMaybe identifier) (braces $ sepBy1 semi structDeclaration))
+                       <|> (liftM2 StructElseDefinition
+                            structUnion identifier)
+
+structUnion = (reservedName "struct" >> Struct) <|> (reservedName "union" >> Union)
+
+structDeclaration = liftM2 StructDeclaration (many typeSpecifier) (sepBy1 comma structDeclarator)
+
+structDeclarator = optionMaybe declarator >>= rest
+  where rest Nothing = colon >> constantExpression >>= return . BitField Nothing
+        rest (Just decl) = (colon >> constantExpression >>= return . BitField (Just decl))
+                           <|> return (Declarator decl)
+
+enumSpecifier = reservedName "enum" >> (
+  (try $ do
+      i <- identifier
+      return $ Enum (just i) [])
+  <|> (try $ do
+          i <- optionMaybe identifier
+          el <- braces $ sepBy1 comma enumerator
+          return $ Enum i el))
+
+enumerator = identifier >>= \i ->
+  (reservedOp "=" >> return (EnumeratorInit i constantExpression))
+  <|> return (Enumerator i)
+
+typeQualifier = (reservedName "const" >> return Const)
+                <|> (reservedName "restrict" >> return Restrict)
+                <|> (reservedName "volatile" >> return Volatile)
+
+functionSpecifier = reservedName "inline" >> return Inline
+
+
+
 designation = liftM DesignationList
   $ many (choice [liftM SubscriptDesignator $ brackets constantExpression
                  , liftM MemberDesignator $ between dot (return ()) identifier])
 
-language = do
-  ident <- identifier
-  return ident
+language = expression
