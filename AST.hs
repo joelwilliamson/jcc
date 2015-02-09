@@ -108,6 +108,8 @@ data UnaryExpression = PostfixExpression PostfixExpression
 data UnaryOp = AddressOf | Dereference | UnaryPlus | UnaryMinus | BitwiseNot | LogicalNot
              deriving (Eq,Show)
 
+-- Every postfix expression starts with either a '(' (Compound Literals) or a
+-- primary expression
 data PostfixExpression = PrimaryExpression PrimaryExpression
                        | ArraySubscript PostfixExpression Expression
                        | FunctionCall PostfixExpression ArgumentExpressionList
