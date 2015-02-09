@@ -134,7 +134,67 @@ data PrimaryExpression = IdentifierExpression Identifier
 -- A constant expression had different semantic constraints, so it should be
 -- represented as a different type
 data ConstantExpression = ConstantExpression ConditionalExpression
+                        deriving (Eq,Show)
 
+-- §6.7 Declarations
+-- The spec calls for init-declarator-list_opt. It then gives a constraint
+-- requiring each declaration to have at least one declarator. The
+-- reasoning here is not clear, so for now I am just going to require
+-- a declarator list
+data Declaration = Declaration [DeclarationSpecifier] [InitDeclarator]
+                 deriving (Eq,Show)
+
+data DeclarationSpecifier = StorageClass StorageClass
+                          | TypeSpecifier TypeSpecifier
+                          | TypeQualifier TypeQualifier
+                          | FunctionSpecifier FunctionSpecifier
+                          deriving (Eq,Show)
+
+data InitDeclarator = Declarator Declarator
+                    | InitDeclarator Declarator Initializer
+                    deriving (Eq,Show)
+
+-- §6.7.1 Storage-Class Specifiers
+data StorageClass = Typedef | Extern | Static | Auto | Register
+                  deriving (Eq,Show)
+
+-- §6.7.2 Type Specifiers
+-- Only a subset of possible combinations are allowed. The data type should
+-- reflect this
+data TypeSpecifier = VoidT | CharT | ShortT | IntT | LongT | FloatT | DoubleT
+                   | Signed | Unsigned | Bool | Complex | Imaginary
+                   | StructUnionSpecifier StructUnionSpecifier
+                   | EnumSpecifier EnumSpecifier
+           --        | TypedefName TypedefName
+                   deriving (Eq,Show)
+
+data StructUnionSpecifier = StructLocalDefinition StructUnion (Maybe Identifier) [StructDeclaration]
+                          | StructElseDefinition StructUnion Identifier
+                          deriving (Eq,Show)
+
+data StructUnion = Struct-- Union
+                 deriving (Eq,Show)
+
+data StructDeclaration = StructDeclaration [TypeSpecifier] [StructDeclarator]
+                       deriving (Eq,Show)
+
+data StructDeclarator = RegularMember-- Declarator
+                      | Bitfield-- (Maybe Declarator) ConstantExpression
+                      deriving (Eq,Show)
+
+data EnumSpecifier = Enum (Maybe Identifier) [Enumerator]
+                   deriving (Eq,Show)
+-- There is a constructor for enumeration-constants, but it isn't clear why
+-- we don't just use an identifier here.
+data Enumerator = Enumerator Identifier
+                deriving (Eq,Show)
+
+-- §6.7.3 Type Qualifiers
+data TypeQualifier = Const | Restrict | Volatile
+                   deriving (Eq,Show)
+-- §6.7.4 Function Specifiers
+data FunctionSpecifier = Inline
+                       deriving (Eq,Show)
 -- 6.7.8
 data Initializer = Assignment AssignmentExpression
                  | IList InitializerList
