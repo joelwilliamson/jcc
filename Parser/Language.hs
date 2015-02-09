@@ -53,6 +53,8 @@ identifier = liftM Identifier $ T.identifier lexer
 whitespace = T.whiteSpace lexer
 comma = T.comma lexer
 commaOp = comma >> return Comma
+semi = T.comma lexer
+colon = T.colon lexer
 reserved = T.reserved lexer
 reservedOp op = (T.reservedOp lexer) op >> return op
 parens = T.parens lexer
@@ -214,14 +216,14 @@ initializerList = liftM InitializerList
                   $ (flip sepBy) comma
                   $ liftM2 (,) (optionMaybe designation) initializer
 
-declaration = liftM2 (many declarationSpecifier) (many initDeclarator)
+declaration = liftM2 Declaration (many declarationSpecifier) (many initDeclarator)
 
 declarationSpecifier = liftM StorageClass storageClass
                        <|> liftM TypeSpecifier typeSpecifier
                        <|> liftM TypeQualifier typeQualifier
                        <|> liftM FunctionSpecifier functionSpecifier
 
-storageClass = foldl1 (<|>) $ map (\(name,cons) -> reservedName name >> return cons)
+storageClass = foldl1 (<|>) $ map (\(name,cons) -> reserved name >> return cons)
                [("typedef", Typedef)
                ,("extern", Extern)
                ,("static", Static)
@@ -229,7 +231,7 @@ storageClass = foldl1 (<|>) $ map (\(name,cons) -> reservedName name >> return c
                ,("register",Register)]
 
 typeSpecifier = (foldl1 (<|>) $
-                map (\(name,cons) -> reservedName name >> return cons)
+                map (\(name,cons) -> reserved name >> return cons)
                 [("void",VoidT)
                 ,("char",CharT)
                 ,("short",ShortT)
@@ -242,42 +244,42 @@ typeSpecifier = (foldl1 (<|>) $
                 ,("_Bool",Bool)
                 ,("_Complex",Complex)
                 ,("_Imaginary",Imaginary)])
-                <|> structUnionSpecifier
-                <|> enumSpecifier
-                <|> typedefName
+                <|> (structUnionSpecifier >>= return . StructUnionSpecifier)
+                <|> (enumSpecifier >>= return . EnumSpecifier)
+--                <|> typedefName
 
 structUnionSpecifier = (try $ liftM3 StructLocalDefinition
-                        structUnion (optionMaybe identifier) (braces $ sepBy1 semi structDeclaration))
+                        structUnion (optionMaybe identifier) (braces $ sepBy1 structDeclaration semi))
                        <|> (liftM2 StructElseDefinition
                             structUnion identifier)
 
-structUnion = (reservedName "struct" >> Struct) <|> (reservedName "union" >> Union)
+structUnion = (reserved "struct" >> return Struct) <|> (reserved "union" >> return Union)
 
-structDeclaration = liftM2 StructDeclaration (many typeSpecifier) (sepBy1 comma structDeclarator)
+structDeclaration = liftM2 StructDeclaration (many typeSpecifier) (sepBy1 structDeclarator comma)
 
 structDeclarator = optionMaybe declarator >>= rest
-  where rest Nothing = colon >> constantExpression >>= return . BitField Nothing
-        rest (Just decl) = (colon >> constantExpression >>= return . BitField (Just decl))
-                           <|> return (Declarator decl)
+  where rest Nothing = colon >> constantExpression >>= return . Bitfield Nothing
+        rest (Just decl) = (colon >> constantExpression >>= return . Bitfield (Just decl))
+                           <|> return (RegularMember decl)
 
-enumSpecifier = reservedName "enum" >> (
+enumSpecifier = reserved "enum" >> (
   (try $ do
       i <- identifier
-      return $ Enum (just i) [])
+      return $ Enum (Just i) [])
   <|> (try $ do
           i <- optionMaybe identifier
-          el <- braces $ sepBy1 comma enumerator
+          el <- braces $ sepBy1 enumerator comma
           return $ Enum i el))
 
 enumerator = identifier >>= \i ->
-  (reservedOp "=" >> return (EnumeratorInit i constantExpression))
+  (reservedOp "=" >> constantExpression >>= return . EnumeratorInit i)
   <|> return (Enumerator i)
 
-typeQualifier = (reservedName "const" >> return Const)
-                <|> (reservedName "restrict" >> return Restrict)
-                <|> (reservedName "volatile" >> return Volatile)
+typeQualifier = (reserved "const" >> return Const)
+                <|> (reserved "restrict" >> return Restrict)
+                <|> (reserved "volatile" >> return Volatile)
 
-functionSpecifier = reservedName "inline" >> return Inline
+functionSpecifier = reserved "inline" >> return Inline
 
 
 
@@ -286,3 +288,7 @@ designation = liftM DesignationList
                  , liftM MemberDesignator $ between dot (return ()) identifier])
 
 language = expression
+
+initDeclarator = undefined
+typedefName = undefined
+declarator = undefined
