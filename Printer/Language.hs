@@ -65,7 +65,7 @@ instance Printable BitwiseOrExpression where
 
 instance Printable BitwiseXorExpression where
   pretty (BitwiseAndExpression a) = pretty a
-  pretty (Xor x a) = pretty x ++ " ^ " ++ pretty a
+  pretty (BitwiseXor x a) = pretty x ++ " ^ " ++ pretty a
 
 instance Printable BitwiseAndExpression where
   pretty (EqualityExpression e) = pretty e
@@ -74,7 +74,7 @@ instance Printable BitwiseAndExpression where
 instance Printable EqualityExpression where
   pretty (RelationalExpression r) = pretty r
   pretty (Equal e r) = pretty e ++ " == " ++ pretty r
-  pretty (DisEqual e r) = pretty e ++ " != " ++ pretty r
+  pretty (UnEqual e r) = pretty e ++ " != " ++ pretty r
 
 instance Printable RelationalExpression where
   pretty (ShiftExpression s) = pretty s
