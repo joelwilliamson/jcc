@@ -211,14 +211,14 @@ data StructUnionSpecifier = StructLocalDefinition StructUnion (Maybe Identifier)
                           | StructElseDefinition StructUnion Identifier
                           deriving (Eq,Show)
 
-data StructUnion = Struct-- Union
+data StructUnion = Struct | Union
                  deriving (Eq,Show)
 
 data StructDeclaration = StructDeclaration [TypeSpecifier] [StructDeclarator]
                        deriving (Eq,Show)
 
-data StructDeclarator = RegularMember-- Declarator
-                      | Bitfield-- (Maybe Declarator) ConstantExpression
+data StructDeclarator = RegularMember Declarator
+                      | Bitfield (Maybe Declarator) ConstantExpression
                       deriving (Eq,Show)
 
 data EnumSpecifier = Enum (Maybe Identifier) [Enumerator]
@@ -226,6 +226,7 @@ data EnumSpecifier = Enum (Maybe Identifier) [Enumerator]
 -- There is a constructor for enumeration-constants, but it isn't clear why
 -- we don't just use an identifier here.
 data Enumerator = Enumerator Identifier
+                | EnumeratorInit Identifier ConstantExpression
                 deriving (Eq,Show)
 
 -- §6.7.3 Type Qualifiers
