@@ -281,7 +281,42 @@ typeQualifier = (reserved "const" >> return Const)
 
 functionSpecifier = reserved "inline" >> return Inline
 
+declarator = liftM2 DirectDeclarator (optionMaybe pointerLevel) directDeclarator
 
+directDeclarator = (liftM IdentifierDDeclarator identifier
+                   <|> liftM DeclaratorDDeclarator (parens declarator))
+                   >>= rest
+  where rest context = (brackets
+                        (do
+                          tq <- many typeQualifier
+                          ae <- optionMaybe assignmentExpression
+                          rest $ ArrayDDeclarator context tq ae)
+                        <|> do
+                          reserved "static"
+                          tq <- many typeQualifier
+                          ae <- assignmentExpression
+                          rest $ ArrayDDeclarator context tq $ Just ae
+                        <|> do
+                          tq <- many1 typeQualifier
+                          reserved "static"
+                          ae <- assignmentExpression
+                          rest $ ArrayDDeclarator context tq $ Just ae
+                        <|> do
+                          tq <- many typeQualifier
+                          reservedOp "*"
+                          rest $ ArrayDDeclarator context tq Nothing
+                       ) <|> parens (choice [liftM Left $ sepBy1 fParameter comma
+                                               ,liftM Right $ sepBy1 identifier comma]
+                              >>= rest . FunctionDDeclarator context)
+
+pointerLevel = liftM PointerLevel $ sepBy (many typeQualifier) (reservedOp "*")
+
+fParameter = (reservedOp "..." >> return Varargs)
+             <|> liftM ParameterDeclaration parameterDeclaration
+
+parameterDeclaration = many declarationSpecifier >>= rest
+  where rest ds = liftM (ConcreteDeclarationSpecifier ds) declarator
+                  <|> liftM (AbstractDeclarationSpecifier ds) (optionMaybe abstractDeclarator)
 
 designation = liftM DesignationList
   $ many (choice [liftM SubscriptDesignator $ brackets constantExpression
@@ -291,4 +326,5 @@ language = expression
 
 initDeclarator = undefined
 typedefName = undefined
-declarator = undefined
+parameterType = undefined
+abstractDeclarator = undefined
