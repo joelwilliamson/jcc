@@ -20,6 +20,10 @@ data StringLiteral = StringLiteral String
 
 
 -- Expressions: 6.5
+class ToExpr a where
+  toExpr :: a -> Expr
+
+  
 data Expression = AssignmentExpression AssignmentExpression
                 | Comma Expression AssignmentExpression
                 deriving (Eq,Show)
@@ -129,6 +133,41 @@ data PrimaryExpression = IdentifierExpression Identifier
                        | StringLiteralExpression StringLiteral
                        | Expr Expression
                        deriving (Eq,Show)
+
+-- This is a collapsed type representing any expression
+data Expr = CommaExpr Expr Expr
+          | AssignExpr Expr AssignmentOperator Expr
+          | TernaryExpr Expr Expr Expr
+          | LogOrExpr Expr Expr
+          | LogAndExpr Expr Expr
+          | BitOrExpr Expr Expr
+          | BitXorExpr Expr Expr
+          | BitAndExpr Expr Expr
+          | EqExpr Expr Expr
+          | DisEqExpr Expr Expr
+          | RelExpr Expr CompareOperator Expr
+          | LShiftExpr Expr Expr
+          | RShiftExpr Expr Expr
+          | AddExpr Expr Expr
+          | SubExpr Expr Expr
+          | MultExpr Expr Expr
+          | DivExpr Expr Expr
+          | ModExpr Expr Expr
+          | CastExpr Identifier Expr
+          | PreIncExpre Expr
+          | PostIncExpr Expr
+          | PreDecExpr Expr
+          | PostDecExpr Expr
+          | UnaryOpExpr UnaryOp Expr
+          | SizeofExprExpr Expr
+          | SizeofTypeExpr Identifier
+          | SubscriptExpr Expr Expr
+          | FunctionCallExpr Expr [Expr]
+          | MemberExpr Expr Identifier
+          | PointerMemberExpr Expr Identifier
+          | PostIncExpr Expr
+          | PostDecExpr Expr
+          | CompoundLiteralExpr Identifier InitializerList
 
 -- 6.6 Constant Expressions
 -- A constant expression had different semantic constraints, so it should be
