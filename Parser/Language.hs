@@ -32,6 +32,15 @@ chainl1' parser op baseConstructor =  parser >>= (rest . baseConstructor)
         rest (f x y)
       <|> return x
 
+both :: (Stream s m t) =>
+        ParsecT s u m a ->
+        ParsecT s u m b ->
+        ParsecT s u m (a,b)
+both p1 p2 = do
+  x <- p1
+  y <- p2
+  return (x,y)
+
 languageDef :: T.LanguageDef st
 languageDef = T.LanguageDef {
   T.commentStart = "/*"
@@ -56,7 +65,7 @@ commaOp = comma >> return Comma
 semi = T.comma lexer
 colon = T.colon lexer
 reserved = T.reserved lexer
-reservedOp op = (T.reservedOp lexer) op >> return op
+reservedOp op = T.reservedOp lexer op >> return op
 parens = T.parens lexer
 brackets = T.brackets lexer
 braces = T.braces lexer
@@ -163,16 +172,16 @@ castExpression =
   <|> liftM UnaryExpression unaryExpression
 
 unaryExpression =
-  (reservedOp "++" >> unaryExpression >>= return . PreIncrement)
-  <|> (reservedOp "--" >> unaryExpression >>= return . PreDecrement)
-  <|> (reserved "sizeof" >> unaryExpression >>= return . ExpressionSize)
-  <|> (reserved "sizeof" >> parens identifier >>= return . TypeSize)
+  liftM PreIncrement(reservedOp "++" >> unaryExpression)
+  <|> liftM PreDecrement (reservedOp "--" >> unaryExpression)
+  <|> liftM ExpressionSize (reserved "sizeof" >> unaryExpression)
+  <|> liftM TypeSize (reserved "sizeof" >> parens identifier)
   <|> prefixExpression
   <|> liftM PostfixExpression postfixExpression
   
 prefixExpression =
   foldl1' (<|>)
-  $ map (\(sym,cons) -> reservedOp sym >> castExpression >>= return . UnaryOp cons)
+  $ map (\(sym,cons) -> liftM (UnaryOp cons) $ reservedOp sym >> castExpression)
   [("&",AddressOf)
   ,("*",Dereference)
   ,("+",UnaryPlus)
@@ -205,7 +214,7 @@ primaryExpression =
   liftM IdentifierExpression identifier
   <|> liftM Constant constant
   <|> liftM StringLiteralExpression stringLiteral
-  <|> (liftM Expr $ parens expression)
+  <|> liftM Expr (parens expression)
 
 constantExpression = liftM ConstantExpression conditionalExpression
 
@@ -213,7 +222,7 @@ initializer = try $ liftM Assignment assignmentExpression
               <|> liftM IList initializerList
 
 initializerList = liftM InitializerList
-                  $ (flip sepBy) comma
+                  $ flip sepBy comma
                   $ liftM2 (,) (optionMaybe designation) initializer
 
 declaration = liftM2 Declaration (many declarationSpecifier) (many initDeclarator)
@@ -230,8 +239,8 @@ storageClass = foldl1 (<|>) $ map (\(name,cons) -> reserved name >> return cons)
                ,("auto", Auto)
                ,("register",Register)]
 
-typeSpecifier = (foldl1 (<|>) $
-                map (\(name,cons) -> reserved name >> return cons)
+typeSpecifier = foldl1 (<|>)
+                (map (\(name,cons) -> reserved name >> return cons)
                 [("void",VoidT)
                 ,("char",CharT)
                 ,("short",ShortT)
@@ -244,35 +253,35 @@ typeSpecifier = (foldl1 (<|>) $
                 ,("_Bool",Bool)
                 ,("_Complex",Complex)
                 ,("_Imaginary",Imaginary)])
-                <|> (structUnionSpecifier >>= return . StructUnionSpecifier)
-                <|> (enumSpecifier >>= return . EnumSpecifier)
+                <|> liftM StructUnionSpecifier structUnionSpecifier
+                <|> liftM EnumSpecifier enumSpecifier
 --                <|> typedefName
 
-structUnionSpecifier = (try $ liftM3 StructLocalDefinition
+structUnionSpecifier = try (liftM3 StructLocalDefinition
                         structUnion (optionMaybe identifier) (braces $ sepBy1 structDeclaration semi))
-                       <|> (liftM2 StructElseDefinition
-                            structUnion identifier)
+                       <|> liftM2 StructElseDefinition
+                            structUnion identifier
 
 structUnion = (reserved "struct" >> return Struct) <|> (reserved "union" >> return Union)
 
 structDeclaration = liftM2 StructDeclaration (many typeSpecifier) (sepBy1 structDeclarator comma)
 
 structDeclarator = optionMaybe declarator >>= rest
-  where rest Nothing = colon >> constantExpression >>= return . Bitfield Nothing
-        rest (Just decl) = (colon >> constantExpression >>= return . Bitfield (Just decl))
+  where rest Nothing = liftM (Bitfield Nothing ) (colon >> constantExpression)
+        rest (Just decl) = liftM (Bitfield (Just decl)) (colon >> constantExpression)
                            <|> return (RegularMember decl)
 
 enumSpecifier = reserved "enum" >> (
-  (try $ do
-      i <- identifier
-      return $ Enum (Just i) [])
-  <|> (try $ do
-          i <- optionMaybe identifier
-          el <- braces $ sepBy1 enumerator comma
-          return $ Enum i el))
+  try (do
+          i <- identifier
+          return $ Enum (Just i) [])
+  <|> try (do
+              i <- optionMaybe identifier
+              el <- braces $ sepBy1 enumerator comma
+              return $ Enum i el))
 
 enumerator = identifier >>= \i ->
-  (reservedOp "=" >> constantExpression >>= return . EnumeratorInit i)
+  liftM (EnumeratorInit i) (reservedOp "=" >> constantExpression)
   <|> return (Enumerator i)
 
 typeQualifier = (reserved "const" >> return Const)
