@@ -195,6 +195,51 @@ data TypeQualifier = Const | Restrict | Volatile
 -- §6.7.4 Function Specifiers
 data FunctionSpecifier = Inline
                        deriving (Eq,Show)
+
+-- §6.7.5 Declarators
+data Declarator = DirectDeclarator (Maybe PointerLevel) DirectDeclarator
+                deriving (Eq,Show)
+
+data DirectDeclarator = IdentifierDDeclarator Identifier
+                      | DeclaratorDDeclarator Declarator
+                        -- The assignment expression is used in conjunction with
+                        -- the static keyword to give a minimum size for an
+                        -- array parameter
+                      | ArrayDDeclarator DirectDeclarator [TypeQualifier] (Maybe AssignmentExpression)
+                      | FunctionDDeclarator DirectDeclarator (Either [FParameter] [Identifier])
+                      deriving (Eq,Show)
+data FParameter = Varargs
+                | ParameterDeclaration ParameterDeclaration
+                deriving (Eq,Show)
+
+data ParameterDeclaration = ConcreteDeclarationSpecifier [DeclarationSpecifier] Declarator
+                          | AbstractDeclarationSpecifier [DeclarationSpecifier] (Maybe AbstractDeclarator)
+                          deriving (Eq,Show)
+
+-- §6.7.6 Type Names
+data TypeName = TypeName [SpecifierQualifier] (Maybe AbstractDeclarator)
+                deriving (Eq,Show)
+
+data AbstractDeclarator = Pointer PointerLevel
+                        | DirectAbstractDeclarator DirectAbstractDeclarator
+                        deriving (Eq,Show)
+
+data DirectAbstractDeclarator = RecursiveDAD AbstractDeclarator
+                              | FixedArrayDAD (Maybe DirectAbstractDeclarator) (Maybe AssignmentExpression)
+                              | VariableArrayDAD (Maybe DirectAbstractDeclarator)
+                              | FunctionDAD (Maybe DirectAbstractDeclarator) (Maybe [ParameterType])
+                              deriving (Eq,Show)
+
+data SpecifierQualifier = SpecifierQualifier
+                        deriving (Eq,Show)
+data ParameterType = ParameterType
+                   deriving (Eq,Show)
+-- A pointer is specified as type * {CRV} * {CRV} * {CRV} ... declarator
+-- This can be represented as a list of lists of TypeQualifiers. Each list
+-- corresponds to a level of pointer indirection, with the Qualifiers in the
+-- list indicating what restrictions apply at that level
+data PointerLevel = PointerLevel [[TypeQualifier]]
+                  deriving (Eq,Show)
 -- 6.7.8
 data Initializer = Assignment AssignmentExpression
                  | IList InitializerList
